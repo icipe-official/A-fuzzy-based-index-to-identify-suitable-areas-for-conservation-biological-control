@@ -1,0 +1,105 @@
+library(raster)
+library(rasterVis)
+path_file = "C:/Users/USER/Desktop/Co-suitability/Africa_grid_5km.csv"
+
+df <- read.csv (path_file)
+
+
+df
+
+df['lon'] <- (df$left + df$right)/2 # Creatiung the Latitude from your left and right
+df['lat'] <- (df$top + df$bottom)/2
+
+df
+df=df[6:7]
+df1=df
+#write.csv(df,"C:/Users/USER/Desktop/Co-suitability/Africa_Grid_5km_vrai_2.csv")
+#df1<-read.csv("C:/Users/USER/Desktop/Co-suitability/Africa_Grid_2km_vrai.csv")
+coordinates(df1)= ~ lat + lon
+
+NDVI_HARV_path1 <- "C:/Users/USER/Desktop/Co-suitability/Data_modelling/" 
+all_NDVI_HARV1 <- list.files(NDVI_HARV_path1, full.names = TRUE,pattern = ".tif$")
+NDVI_HARV_stack1 <- stack(all_NDVI_HARV1)
+#brachiaria=raster("C:/Users/USER/Desktop/Co-suitability/Data_modelling/Brachiaria.tif")
+
+
+#plot(NDVI_HARV_stack1)
+DF1= extract(NDVI_HARV_stack1, df1)
+DF1[is.na(DF1)] = 0.1
+data<- cbind(df,DF1)
+
+#write.csv(data,"C:/Users/USER/Desktop/Co-suitability/My_data_good.csv")
+## Reading the input file (see example.csv)
+#tabela<-read.table("example.csv",sep=";",dec=".",header=TRUE)
+tabela<-data
+summary(tabela)
+##Each column of the input file represents one variable("Temperature", "Relative humidity" and "Flushing")   
+size<-length(tabela$Brachiaria);
+
+IFuzzy<-rep(0,size)
+
+for(i in 1:size){
+  
+  ##Reading Brachiaria for the position i
+  B<-tabela$Brachiaria[i]
+  
+  ##Reading Desmodium for the position i
+  D<-tabela$Desmodium_intortum_Urb[i]
+  
+  ##Reading the intensity of livestock for the position i
+  L<-tabela$Livestotock[i]
+  print(paste(B))
+  
+  
+  ##Fuzzy membership function for Brachiaria
+  if (B <= 0.1){
+    ITD = 0.25
+  }else if (B>=0.1 & B<0.6){
+    ITD = 0.75
+  }else if (B>=0.6 & B<=1){
+    ITD = 1
+  }else if (B<0){
+    ITD = 0.05
+  }
+  cat(ITD)
+  
+  
+  ##Fuzzy membership function for Desmodium
+  
+  if (D <= 0.1){
+    IRHD = 0.50
+  }else if (D>=0.06905 & D<0.6){
+    IRHD = 0.75
+  }else if (D>=0.6 & D<=1){
+    IRHD = 1
+  }else if (D<0.05){
+    IRHD = 0.05
+  }
+  cat(IRHD)
+  
+  ##Fuzzy membership function for temperature (Tamarixia radiata)
+  
+  if (L <= 13){
+    ITT = 1
+  }else if (L>=5 & L<13){
+    ITT = 0.75
+  }else if (L>=1 & L<5){
+    ITT = 1
+  }else if (L>13){
+    ITT = 0.50
+  }
+  ITT
+  
+  
+##Calculating the fuzzy index
+  IFuzzy[i] = ITT*IRHD*ITT
+  IFuzzy[i]
+  
+}
+IFuzzy=cbind(tabela,IFuzzy)
+#write.table(IFuzzy,file="output.csv",row.names=F,col.names=F)
+summary(IFuzzy)
+
+write.csv(IFuzzy,"C:/Users/USER/Desktop/Co-suitability/Data_modelling/suitability.csv")
+
+
